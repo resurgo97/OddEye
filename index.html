@@ -1,0 +1,1220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OddEye</title>
+<meta name="description" content="OddEye integrates off-the-shelf pairwise dense matchers into incremental Structure-from-Motion with fixed per-image anchors and attention-guided, on-demand matching.">
+<meta property="og:title" content="OddEye: Bridging Pairwise Dense Matching and Incremental Structure-from-Motion">
+<meta property="og:description" content="OddEye integrates off-the-shelf pairwise dense matchers into incremental Structure-from-Motion with fixed per-image anchors and attention-guided, on-demand matching.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<style>[hidden]{display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* Layout: one left-aligned reading column (about 68ch) inside a 1120px frame; figures, tables and the demo use the full frame.
+   Color: the logo's two irises. Blue marks registered views and matched tracks, green marks the candidate image and OddEye's rows. */
+:root {
+  --bg: #F4F6F5;
+  --surface: #FFFFFF;
+  --sunk: #E9EDEB;
+  --ink: #15191C;
+  --ink-2: #434D54;
+  --muted: #646F76;
+  --line: #D5DBD9;
+  --blue: #2A6FBF;
+  --blue-ink: #245FA5;
+  --blue-wash: rgba(42, 111, 191, 0.11);
+  --green: #7AB23C;
+  --green-ink: #3E7717;
+  --green-wash: rgba(122, 178, 60, 0.16);
+  --frag: #B9546A;
+  --frag-wash: rgba(185, 84, 106, 0.12);
+  --bar-ours: #2A6FBF;
+  --bar-base: #6E7A82;
+  --on-bar: #FFFFFF;
+  --plate: #FFFFFF;
+  --plate-filter: none;
+  --video-bg: #0B0D0F;
+  --focus: #2A6FBF;
+  --logo-light: block;
+  --logo-dark: none;
+
+  --f-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --measure: 68ch;
+  --frame: 1120px;
+  --radius: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1215;
+    --surface: #151A1E;
+    --sunk: #1C2227;
+    --ink: #E6EAE9;
+    --ink-2: #B4BDC2;
+    --muted: #8D989E;
+    --line: #2A3338;
+    --blue: #7DB0EA;
+    --blue-ink: #8DBAEE;
+    --blue-wash: rgba(125, 176, 234, 0.13);
+    --green: #8CC455;
+    --green-ink: #A3D374;
+    --green-wash: rgba(140, 196, 85, 0.14);
+    --frag: #E08A9C;
+    --frag-wash: rgba(224, 138, 156, 0.12);
+    --bar-ours: #5592DA;
+    --bar-base: #5F6B73;
+    --on-bar: #FFFFFF;
+    --plate: #FFFFFF;
+    --plate-filter: brightness(0.93);
+    --video-bg: #050607;
+    --focus: #7DB0EA;
+    --logo-light: none;
+    --logo-dark: block;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1215;
+  --surface: #151A1E;
+  --sunk: #1C2227;
+  --ink: #E6EAE9;
+  --ink-2: #B4BDC2;
+  --muted: #8D989E;
+  --line: #2A3338;
+  --blue: #7DB0EA;
+  --blue-ink: #8DBAEE;
+  --blue-wash: rgba(125, 176, 234, 0.13);
+  --green: #8CC455;
+  --green-ink: #A3D374;
+  --green-wash: rgba(140, 196, 85, 0.14);
+  --frag: #E08A9C;
+  --frag-wash: rgba(224, 138, 156, 0.12);
+  --bar-ours: #5592DA;
+  --bar-base: #5F6B73;
+  --on-bar: #FFFFFF;
+  --plate: #FFFFFF;
+  --plate-filter: brightness(0.93);
+  --video-bg: #050607;
+  --focus: #7DB0EA;
+  --logo-light: none;
+  --logo-dark: block;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 1.0625rem;
+  line-height: 1.62;
+  font-optical-sizing: auto;
+}
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--blue-ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
+::selection { background: var(--blue-wash); }
+
+.wrap {
+  max-width: var(--frame);
+  margin-inline: auto;
+  padding-inline: clamp(16px, 4.5vw, 44px);
+}
+.prose { max-width: var(--measure); }
+.prose p { margin: 0 0 1em; }
+.prose p:last-child { margin-bottom: 0; }
+
+h1, h2, h3 {
+  font-family: var(--f-display);
+  text-wrap: balance;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.eyebrow {
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.dot {
+  display: inline-block;
+  width: 0.62em;
+  height: 0.62em;
+  border-radius: 50%;
+  vertical-align: 0.02em;
+  margin-right: 0.35em;
+}
+.dot.blue { background: var(--blue); }
+.dot.green { background: var(--green); }
+.num { font-variant-numeric: tabular-nums; }
+.math { font-style: italic; white-space: nowrap; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: clamp(36px, 7vw, 72px) 28px; }
+.hero-grid { display: grid; gap: 22px; }
+.logo { margin: 0; }
+.logo img { height: clamp(52px, 9vw, 88px); width: auto; }
+.logo .light { display: var(--logo-light); }
+.logo .dark { display: var(--logo-dark); }
+.title {
+  font-size: clamp(1.55rem, 3.4vw, 2.45rem);
+  font-weight: 650;
+  line-height: 1.12;
+  max-width: 26ch;
+}
+.byline { display: grid; gap: 4px; }
+.authors {
+  font-family: var(--f-display);
+  font-size: clamp(1.05rem, 1.8vw, 1.2rem);
+  font-weight: 560;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 22px;
+}
+.affil { font-family: var(--f-mono); font-size: 0.8125rem; color: var(--muted); }
+.links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 15px 9px 13px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--f-mono);
+  font-size: 0.84rem;
+  font-weight: 500;
+  text-decoration: none;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--ink-2); text-decoration: none; }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.primary:hover { opacity: 0.9; }
+.btn[aria-disabled="true"] {
+  color: var(--muted);
+  border-style: dashed;
+  background: transparent;
+  cursor: default;
+}
+.btn .soon {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.thesis {
+  font-size: clamp(1.1rem, 1.9vw, 1.25rem);
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 62ch;
+  margin: 6px 0 0;
+}
+
+/* ---------- figures ---------- */
+figure { margin: 0; }
+.plate {
+  background: var(--plate);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: clamp(8px, 1.4vw, 14px);
+  overflow: hidden;
+}
+.plate img { width: 100%; filter: var(--plate-filter); border-radius: 4px; }
+figcaption {
+  margin-top: 12px;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: var(--measure);
+}
+figcaption b { color: var(--ink); font-weight: 600; }
+.teaser { margin-top: 30px; }
+.teaser figcaption { display: flex; flex-wrap: wrap; gap: 4px 18px; max-width: none; }
+.teaser figcaption > span:first-child { flex: 1 1 32ch; min-width: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-family: var(--f-mono); font-size: 0.8rem; color: var(--ink-2); align-items: center; }
+
+/* ---------- at a glance ---------- */
+.glance {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0 28px;
+  margin-top: 40px;
+}
+.stat { border-top: 1px solid var(--line); padding-block: 16px 18px; min-width: 0; }
+.stat .value {
+  font-family: var(--f-display);
+  font-size: clamp(1.9rem, 3.4vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+.stat .value small { font-size: 0.55em; font-weight: 600; letter-spacing: 0; margin-left: 2px; }
+.stat .what { margin-top: 6px; font-size: 0.98rem; line-height: 1.45; }
+.stat .ctx { margin-top: 6px; font-family: var(--f-mono); font-size: 0.74rem; line-height: 1.5; color: var(--muted); }
+
+/* ---------- sections ---------- */
+section { margin-top: clamp(64px, 9vw, 104px); scroll-margin-top: 24px; }
+.sec-head { display: grid; gap: 8px; margin-bottom: 24px; }
+.sec-head h2 { font-size: clamp(1.7rem, 3vw, 2.25rem); font-weight: 700; line-height: 1.1; }
+h3 {
+  font-size: clamp(1.25rem, 2.1vw, 1.45rem);
+  font-weight: 650;
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+.sub { margin-top: clamp(44px, 6vw, 64px); }
+.sec-head + .sub { margin-top: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.idea-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.stack { display: grid; gap: 26px; }
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: clamp(22px, 4vw, 44px);
+  align-items: start;
+}
+@media (max-width: 860px) { .split { grid-template-columns: minmax(0, 1fr) !important; } }
+
+/* ---------- video ---------- */
+.video-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 272px;
+  gap: 28px;
+  align-items: start;
+}
+@media (max-width: 900px) { .video-grid { grid-template-columns: minmax(0, 1fr); } }
+.video-frame {
+  background: var(--video-bg);
+  border-radius: var(--radius);
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  max-width: 100%;
+}
+.video-frame video { width: 100%; height: 100%; display: block; }
+.chapters { margin: 0; padding: 0; list-style: none; display: grid; }
+.chapters li { border-top: 1px solid var(--line); }
+.chapters li:last-child { border-bottom: 1px solid var(--line); }
+.chapters button {
+  all: unset;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 3.4em minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  padding: 7px 4px;
+  cursor: pointer;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.chapters button:hover { background: var(--sunk); }
+.chapters button:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.chapters button[aria-current="true"] { background: var(--blue-wash); }
+.chapters time { font-family: var(--f-mono); font-size: 0.78rem; color: var(--muted); padding-top: 2px; }
+.video-note { margin-top: 10px; font-family: var(--f-mono); font-size: 0.75rem; color: var(--muted); }
+
+/* ---------- demo ---------- */
+.demo {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: clamp(14px, 2vw, 20px);
+}
+.demo-bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; padding: 3px; background: var(--sunk); }
+.seg button {
+  all: unset;
+  font-family: var(--f-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 7px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--ink-2);
+}
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+.seg button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.ghost {
+  all: unset;
+  font-family: var(--f-mono);
+  font-size: 0.8rem;
+  color: var(--ink-2);
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.ghost:hover { background: var(--sunk); color: var(--ink); }
+.ghost:focus-visible { outline: 2px solid var(--focus); }
+.demo-canvas { margin-top: 10px; overflow-x: auto; }
+.demo-canvas svg { width: 100%; max-width: 860px; min-width: 480px; height: auto; display: block; margin-inline: auto; }
+.demo .frame { stroke: var(--ink-2); stroke-width: 1.2; }
+.demo .frame.src { fill: var(--surface); }
+.demo .frame.tgt { fill: var(--sunk); transition: fill 200ms ease; }
+.demo[data-mode="independent"] .frame.tgt { fill: var(--frag-wash); }
+.demo[data-mode="anchors"] .frame.tgt { fill: var(--blue-wash); }
+.demo .lbl { font-family: var(--f-body); font-style: italic; font-size: 17px; fill: var(--ink); }
+.demo .lbl-sub { font-family: var(--f-mono); font-style: normal; font-size: 11px; fill: var(--muted); letter-spacing: 0.04em; }
+.demo .arc { fill: none; stroke-width: 1.4; opacity: 0.85; }
+.demo .arc.a { stroke: var(--frag); }
+.demo .arc.b { stroke: var(--frag); stroke-dasharray: 4 3; }
+.demo .arc.t { stroke: var(--blue); }
+.demo .pt { stroke: var(--surface); stroke-width: 2; }
+.demo .pt.a { fill: var(--frag); }
+.demo .pt.b { fill: var(--surface); stroke: var(--frag); stroke-width: 1.6; }
+.demo .pt.t { fill: var(--blue); }
+.demo .anchor-ring { fill: var(--surface); stroke: var(--blue); stroke-width: 1.6; }
+.demo .anchor-x { stroke: var(--blue); stroke-width: 1.4; }
+.demo .miss { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 2 2; }
+.readout {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 20px;
+  margin-top: 12px;
+}
+.readout > div { border-top: 1px solid var(--line); padding-top: 8px; min-width: 0; }
+.readout .k { font-family: var(--f-mono); font-size: 0.72rem; letter-spacing: 0.04em; color: var(--muted); }
+.readout .v { font-family: var(--f-display); font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
+@media (max-width: 520px) { .readout .v { font-size: 1.2rem; } }
+.demo-note { margin-top: 12px; font-size: 0.92rem; color: var(--ink-2); max-width: var(--measure); }
+
+/* ---------- tables ---------- */
+.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-family: var(--f-mono); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 10px; text-align: right; white-space: nowrap; }
+th { font-family: var(--f-display); font-weight: 600; font-size: 0.82rem; color: var(--ink); }
+thead tr:first-child th { padding-top: 12px; }
+thead tr:last-child th { border-bottom: 1px solid var(--line); padding-bottom: 9px; color: var(--ink-2); font-weight: 500; }
+thead .grp { text-align: center; border-bottom: 1px solid var(--line); }
+td.l, th.l { text-align: left; }
+tbody tr + tr td { border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
+tr.group td {
+  font-family: var(--f-body);
+  font-style: italic;
+  font-size: 0.86rem;
+  color: var(--muted);
+  padding-top: 12px;
+  text-align: left;
+  background: var(--bg);
+}
+tr.ours td { background: var(--green-wash); color: var(--ink); }
+tr.ours td.l b { font-family: var(--f-display); font-weight: 700; }
+td.best { font-weight: 700; color: var(--ink); }
+td.m { color: var(--muted); }
+.sep-l { border-left: 1px solid var(--line); }
+.table-note { margin-top: 10px; font-size: 0.9rem; color: var(--ink-2); max-width: var(--measure); }
+.mini td, .mini th { padding: 6px 12px; }
+
+/* ---------- runtime chart ---------- */
+.chart {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: clamp(14px, 2vw, 22px);
+  position: relative;
+}
+.chart-title { font-family: var(--f-display); font-weight: 650; font-size: 1.02rem; }
+.chart-sub { font-family: var(--f-mono); font-size: 0.74rem; color: var(--muted); margin-top: 2px; }
+.bars { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) 5.2em; gap: 10px 14px; margin-top: 18px; align-items: center; }
+.bars .hdr { font-family: var(--f-mono); font-size: 0.7rem; color: var(--muted); letter-spacing: 0.04em; }
+.bars .hdr.r { text-align: right; }
+.row-label { font-family: var(--f-mono); font-size: 0.8rem; color: var(--ink); line-height: 1.25; }
+.row-label small { display: block; color: var(--muted); font-size: 0.72rem; }
+.track {
+  position: relative;
+  height: 30px;
+  background-image: linear-gradient(to right, var(--line) 1px, transparent 1px);
+  background-size: 20% 100%;
+  background-repeat: repeat-x;
+  border-right: 1px solid var(--line);
+  outline: none;
+}
+.bar {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  height: 18px;
+  border-radius: 0 4px 4px 0;
+  background: var(--bar-ours);
+}
+.bar.base { background: var(--bar-base); }
+.bar-val {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--f-mono);
+  font-size: 0.78rem;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.bar-val.inside { color: var(--on-bar); right: auto; padding-left: 8px; }
+.auc { font-family: var(--f-mono); font-size: 0.8rem; text-align: right; }
+.ticks { grid-column: 2; position: relative; height: 16px; font-family: var(--f-mono); font-size: 0.68rem; color: var(--muted); }
+.ticks span { position: absolute; transform: translateX(-50%); }
+.ticks span:first-child { transform: none; }
+.ticks span:last-child { transform: translateX(-100%); }
+.track:hover .bar, .track:focus-visible .bar { filter: brightness(1.12); }
+.track:focus-visible { box-shadow: 0 0 0 2px var(--focus); border-radius: 3px; }
+.tip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--ink);
+  color: var(--bg);
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  padding: 7px 10px;
+  border-radius: 7px;
+  white-space: nowrap;
+  z-index: 3;
+}
+@media (max-width: 560px) {
+  .bars { grid-template-columns: minmax(0, 1fr) 4.6em; }
+  .bars .row-label { grid-column: 1 / -1; margin-bottom: -6px; }
+  .bars .hdr.first { display: none; }
+  .ticks { grid-column: 1; }
+}
+
+/* ---------- tabs ---------- */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.tabs button {
+  all: unset;
+  font-family: var(--f-mono);
+  font-size: 0.8rem;
+  padding: 7px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  color: var(--ink-2);
+}
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tabs button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* ---------- facts list ---------- */
+.facts { margin: 0; padding: 0; list-style: none; display: grid; gap: 0; }
+.facts li { display: grid; grid-template-columns: 5.2em minmax(0, 1fr); gap: 14px; border-top: 1px solid var(--line); padding-block: 10px; }
+.facts li:last-child { border-bottom: 1px solid var(--line); }
+.facts .n { font-family: var(--f-display); font-weight: 700; font-size: 1.15rem; line-height: 1.3; }
+.facts .t { font-size: 0.95rem; line-height: 1.5; color: var(--ink-2); }
+
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 14px; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 2em minmax(0, 1fr); gap: 10px; }
+.steps li::before {
+  content: counter(s);
+  font-family: var(--f-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  width: 1.9em;
+  height: 1.9em;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+  margin-top: 2px;
+}
+.steps b { font-family: var(--f-display); font-weight: 650; }
+
+/* ---------- bibtex ---------- */
+.bib { position: relative; }
+.bib pre {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  font-family: var(--f-mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  color: var(--ink);
+}
+.bib-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 12px; }
+.copy-status { font-family: var(--f-mono); font-size: 0.75rem; color: var(--muted); }
+
+footer {
+  margin-top: clamp(72px, 10vw, 110px);
+  padding-block: 26px 40px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px 24px;
+  font-family: var(--f-mono);
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+footer .sel { user-select: all; color: var(--ink-2); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="hero-grid">
+    <div class="eyebrow">Structure-from-Motion · Dense matching · Preprint 2026</div>
+    <h1 class="logo">
+      <img class="light" src="assets/logo-light.png" alt="OddEye" width="1059" height="334">
+      <img class="dark" src="assets/logo-dark.png" alt="OddEye" width="1059" height="334">
+    </h1>
+    <p class="title" role="doc-subtitle">Bridging Pairwise Dense Matching and Incremental Structure-from-Motion</p>
+    <div class="byline">
+      <div class="authors"><span>Seungyeop Kang</span><span>Sungjoo Yoo</span></div>
+      <div class="affil">Seoul National University</div>
+    </div>
+    <nav class="links" aria-label="Paper resources">
+      <a class="btn" id="link-arxiv" href="#">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h5.5L13 5v9.5H4z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9.5 1.5V5H13" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M6 8.5h5M6 11h5" stroke="currentColor" stroke-width="1.3"/></svg>
+        Paper
+      </a>
+      <a class="btn" id="link-code" href="#">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Code
+      </a>
+      <a class="btn primary" href="#video">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.2v9.6L12.8 8z" fill="currentColor"/></svg>
+        Video · 12 min
+      </a>
+      <a class="btn" href="#bibtex">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 4h9M3.5 8h9M3.5 12h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        BibTeX
+      </a>
+    </nav>
+    <p class="thesis">OddEye runs off-the-shelf pairwise dense matchers inside incremental SfM. Fixed per-image anchors link their predictions into multi-view tracks, and cross-view attention from a feed-forward 3D model decides which image pairs to match as the reconstruction grows.</p>
+  </div>
+
+  <figure class="teaser">
+    <div class="plate"><img src="assets/teaser.webp" alt="Six ETH3D reconstructions shown as colored point clouds with camera frustums. In each, one green frustum marks the image being registered and a few blue frustums mark the registered views it was matched against." width="2200" height="1000"></div>
+    <figcaption>
+      <span>When OddEye registers a new image, it runs the dense matcher only against a few registered views chosen by the attention prior.</span>
+      <span class="legend"><span><span class="dot green"></span>candidate image</span><span><span class="dot blue"></span>registered partners</span></span>
+    </figcaption>
+  </figure>
+
+  <div class="glance" aria-label="Key results">
+    <div class="stat">
+      <div class="value">94.98<small>%</small></div>
+      <div class="what">pose AUC@3° on ETH3D, the best among all compared methods</div>
+      <div class="ctx">with RoMa v2 · 22 scenes</div>
+    </div>
+    <div class="stat">
+      <div class="value">+17.55</div>
+      <div class="what">points of AUC@1° over DenseSfM with the same matcher</div>
+      <div class="ctx">ETH3D · both with RoMa</div>
+    </div>
+    <div class="stat">
+      <div class="value">9.53<small>×</small></div>
+      <div class="what">faster than exhaustive matching, for 0.37 points of AUC@3°</div>
+      <div class="ctx">ETH3D bridge · 110 images · k = 3</div>
+    </div>
+    <div class="stat">
+      <div class="value">99.8<small>%</small></div>
+      <div class="what">of 6,109 SMERF images registered, under 10 GiB of GPU memory</div>
+      <div class="ctx">4 scenes · up to 1,874 images</div>
+    </div>
+  </div>
+</header>
+
+<section id="video" aria-labelledby="video-h">
+  <div class="sec-head">
+    <div class="eyebrow">Narrated explainer · 12:14</div>
+    <h2 id="video-h">OddEye in twelve minutes</h2>
+  </div>
+  <div class="video-grid">
+    <div>
+      <div class="video-frame">
+        <video id="explainer" controls preload="metadata" playsinline poster="assets/video-poster.jpg">
+          <source src="assets/oddeye-explainer.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="video-note">Captions are part of the video. Pick a chapter to jump to it.</div>
+    </div>
+    <ol class="chapters" id="chapters" aria-label="Video chapters">
+      <li><button type="button" data-t="0"><time>0:00</time><span>Intro</span></button></li>
+      <li><button type="button" data-t="35"><time>0:35</time><span>How incremental SfM works</span></button></li>
+      <li><button type="button" data-t="104"><time>1:44</time><span>Keypoints and tracks</span></button></li>
+      <li><button type="button" data-t="138"><time>2:18</time><span>The trouble with dense matchers</span></button></li>
+      <li><button type="button" data-t="208"><time>3:28</time><span>The cost of matching every pair</span></button></li>
+      <li><button type="button" data-t="278"><time>4:38</time><span>Idea 1: fixed source anchors</span></button></li>
+      <li><button type="button" data-t="383"><time>6:23</time><span>Idea 2: the attention prior</span></button></li>
+      <li><button type="button" data-t="512"><time>8:32</time><span>On-demand scheduling</span></button></li>
+      <li><button type="button" data-t="588"><time>9:48</time><span>The registration loop</span></button></li>
+      <li><button type="button" data-t="636"><time>10:36</time><span>Results</span></button></li>
+    </ol>
+  </div>
+</section>
+
+<section id="abstract" aria-labelledby="abstract-h">
+  <div class="sec-head">
+    <div class="eyebrow">Paper</div>
+    <h2 id="abstract-h">Abstract</h2>
+  </div>
+  <div class="prose">
+    <p>While pairwise dense matchers offer dense coverage and robustness in low-texture scenes, their integration into incremental Structure-from-Motion (SfM) is hindered by two fundamental issues: fragmented multi-view tracks caused by independent pairwise sampling, and a high per-pair matching cost that makes exhaustive matching prohibitive. To overcome these challenges, we present <b>OddEye</b>, an incremental SfM framework that pairs off-the-shelf dense matchers with dynamic, reconstruction-aware scheduling.</p>
+    <p>First, OddEye enforces consistent observation identities across views by anchoring queries to a fixed set of source coordinates per image, forming well-connected star-shaped multi-view tracks. Second, OddEye extracts a compact geometric prior from the cross-view attention of a feed-forward 3D model, and uses it to dynamically schedule dense matching only between candidate unregistered images and already registered partners.</p>
+    <p>OddEye attains state-of-the-art results on ETH3D, IMC 2021, and Texture-Poor SfM, achieving 94.98% AUC@3° on ETH3D with RoMa v2. It also delivers a 9.53× speedup on the largest ETH3D scene with negligible pose loss and scales to SMERF scenes of up to 1,874 images, registering 99.8% of images with under 10 GiB of peak GPU memory.</p>
+  </div>
+</section>
+
+<section id="method" aria-labelledby="method-h">
+  <div class="sec-head">
+    <div class="eyebrow">Method</div>
+    <h2 id="method-h">How OddEye works</h2>
+  </div>
+
+  <figure>
+    <div class="plate"><img src="assets/pipeline.webp" alt="Pipeline diagram. (a) A feed-forward 3D model processes the unordered images once; its global attention is compressed into an attention prior h. (b) The prior drives initial-pair selection, next-view selection and registered-partner selection. (c) Selected pairs go to the dense matcher, whose matches at fixed anchors extend tracks and triangulate points before bundle adjustment." width="2000" height="1033" loading="lazy"></div>
+    <figcaption><b>Overview.</b> (a) One forward pass of a feed-forward 3D model gives a compact prior <span class="math">h</span> from its cross-view attention. (b) The prior picks the initial pair, the next view and the registered partners inside the incremental loop. (c) Dense matching runs on demand for the selected pairs only, queried at each image's fixed anchors.</figcaption>
+  </figure>
+
+  <div class="sub" style="margin-top: clamp(44px, 6vw, 64px)">
+    <div class="idea-tag">Idea 1</div>
+    <h3>Fixed source anchors turn pairwise fields into tracks</h3>
+    <div class="split">
+      <div class="prose">
+        <p>A dense matcher such as RoMa predicts a correspondence field <span class="math">Φ<sub>i→j</sub></span> and a confidence map for one image pair. To get matches you still have to choose where to read the field. If each pair samples its own source points, matches from image <span class="math">i</span> into <span class="math">j</span> and into <span class="math">k</span> almost never start at the same pixel, so every track stops at two views.</p>
+        <p>OddEye samples a set of <span class="math">N<sub>a</sub></span> anchor coordinates once per image and reads every field with <span class="math">i</span> as the source at exactly those anchors. Matches must pass a confidence threshold, a forward–backward cycle check and epipolar verification. Every verified match from one anchor joins the same star-shaped track, and the target locations stay subpixel, so no learned track refinement is needed.</p>
+      </div>
+      <figure>
+        <div class="plate"><img src="assets/anchors.webp" alt="Top: independently sampled matches from image i into images j and k start at different pixels and form two separate two-view tracks. Bottom: querying both fields at the same anchor forms one track that spans three views." width="1400" height="964" loading="lazy"></div>
+      </figure>
+    </div>
+
+    <div class="demo" id="demo" data-mode="independent" style="margin-top: 26px">
+      <div class="demo-bar">
+        <div class="seg" role="group" aria-label="Sampling strategy">
+          <button type="button" data-mode="independent" aria-pressed="true">Independent sampling</button>
+          <button type="button" data-mode="anchors" aria-pressed="false">Fixed anchors</button>
+        </div>
+        <button type="button" class="ghost" id="resample">
+          <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v3h-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Resample
+        </button>
+      </div>
+      <div class="demo-canvas">
+        <svg id="demo-svg" viewBox="0 0 720 268" role="img" aria-labelledby="demo-desc">
+          <desc id="demo-desc">Matches from source image i into target images j and k.</desc>
+        </svg>
+      </div>
+      <div class="readout" aria-live="polite">
+        <div><div class="k">tracks</div><div class="v num" id="r-tracks">–</div></div>
+        <div><div class="k">tracks spanning 3 views</div><div class="v num" id="r-multi">–</div></div>
+        <div><div class="k">mean track length</div><div class="v num" id="r-len">–</div></div>
+      </div>
+      <p class="demo-note" id="demo-note">Each pair samples its own source points in <i>I<sub>i</sub></i>. Solid arcs go to <i>I<sub>j</sub></i>, dashed arcs to <i>I<sub>k</sub></i>. No two arcs share a start, so every track has two views.</p>
+    </div>
+
+    <div class="split" style="margin-top: 30px; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr)">
+      <div>
+        <div class="table-scroll">
+          <table class="mini">
+            <caption class="sr-only">Effect of anchor-based sampling on ETH3D with RoMa v2</caption>
+            <thead>
+              <tr><th class="l">Source points</th><th>Length</th><th>≥ 3 views</th><th>AUC@3°</th><th>Reg.</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="l">Independent</td><td>2.00</td><td>0.0%</td><td>0.35</td><td>5.6%</td></tr>
+              <tr><td class="l">+ Quantized (16 px)</td><td>2.05</td><td>5.0%</td><td>43.16</td><td>55.1%</td></tr>
+              <tr class="ours"><td class="l"><b>Fixed anchors</b></td><td class="best">4.98</td><td class="best">91.1%</td><td class="best">94.89</td><td class="best">100.0%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="table-note">ETH3D with RoMa v2 and the same attention-ranked pair graph for all three rows, so only the choice of source points changes.</p>
+      </div>
+      <figure>
+        <div class="plate"><img src="assets/track-length.webp" alt="Point clouds of the ETH3D lecture room colored by track length: the quantized-grid version on the left is mostly short tracks, the fixed-anchor version on the right has long tracks throughout." width="1929" height="908" loading="lazy"></div>
+        <figcaption><b>Track length on ETH3D <i>lecture room</i>.</b> Left: quantized 16 px grid. Right: fixed anchors.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <div class="sub" style="margin-top: clamp(56px, 8vw, 88px)">
+    <div class="idea-tag">Idea 2</div>
+    <h3>Cross-view attention decides what to match, and when</h3>
+    <div class="split">
+      <div class="prose">
+        <p>Before reconstruction, OddEye passes all images once through a feed-forward 3D model (DVLT by default). It ignores the predicted cameras and depth and reads one attention head. For a source patch <span class="math">p</span> in image <span class="math">i</span>, the strongest response over the patches of image <span class="math">j</span> gives a patch score <span class="math">h<sub>i→j</sub>(p)</span>. Averaging over patches gives a pair score <span class="math">h̄<sub>i→j</sub></span>.</p>
+        <p>The head is picked once, on held-out Tanks and Temples scenes, by how often its strongest response hits the true corresponding patch. Layer 11, head 0 is right 31.7% of the time and stays fixed for every evaluation scene. Poses and points never come from the 3D model; they come only from verified dense correspondences.</p>
+      </div>
+      <ul class="facts">
+        <li><span class="n num">30.4 MB</span><span class="t">prior storage for 100 images with 768 patches each, instead of about 23.4 GB for the full attention blocks</span></li>
+        <li><span class="n num">0.58 min</span><span class="t">to compute the prior on the 110-image <i>bridge</i> scene</span></li>
+        <li><span class="n num">(11, 0)</span><span class="t">layer and head used for every scene, chosen by top-1 patch-correspondence accuracy</span></li>
+      </ul>
+    </div>
+
+    <figure style="margin-top: 26px">
+      <div class="plate"><img src="assets/attention-heads.webp" alt="Left: heatmap of top-1 patch-correspondence accuracy for each layer and head of DVLT, peaking at layer 11, head 0. Right: attention maps for one query patch on a whiteboard wall; head (11, 2) is diffuse, head (2, 0) latches onto a different whiteboard, head (11, 0) finds the true match in both target views." width="2400" height="572" loading="lazy"></div>
+      <figcaption><b>Choosing the head.</b> Left: top-1 patch-correspondence accuracy for every layer and head. Right: head (11, 2) spreads its attention, head (2, 0) is fooled by a similar-looking whiteboard, and head (11, 0) finds the true match in both views.</figcaption>
+    </figure>
+
+    <div class="split" style="margin-top: 34px">
+      <div>
+        <h4 class="eyebrow" style="margin: 0 0 14px">Three decisions inside the incremental loop</h4>
+        <ol class="steps">
+          <li><div><b>Initial pair.</b> Symmetric pair weights <span class="math">w<sub>ij</sub></span> rank starting images by their total weight and partners by weight. The first pair that passes verification starts the reconstruction.</div></li>
+          <li><div><b>Next view.</b> For each unregistered image, count the active 3D tracks whose anchor patch scores above a visibility threshold in that image. Try the image with the highest count first.</div></li>
+          <li><div><b>Registered partners.</b> Rank registered views by pair score and keep the top <span class="math">k</span> (5 by default). Only these pairs go to the dense matcher, in both directions: one for PnP and track extension, one for new tracks to triangulate.</div></li>
+        </ol>
+      </div>
+      <figure>
+        <div class="plate"><img src="assets/scheduling.webp" alt="Left: point cloud of the ETH3D pipes scene with the 3D points visible from the candidate view highlighted in yellow. Right: the candidate among unregistered images U is matched only to its top registered partners in R." width="1600" height="866" loading="lazy"></div>
+        <figcaption><b>On-demand scheduling.</b> The candidate (yellow) is matched only against its top-<span class="math">k</span> registered partners (blue).</figcaption>
+      </figure>
+    </div>
+
+    <figure style="margin-top: 30px">
+      <div class="plate"><img src="assets/ranking.webp" alt="Four ETH3D image pairs that look alike but do not overlap: pipes, living room, office and bridge. DINOv2 ranks each wrong partner in its top three; the attention prior ranks them last or near last." width="2400" height="616" loading="lazy"></div>
+      <figcaption><b>Look-alikes that do not overlap.</b> Each query is paired with an image that shares no geometry with it. Labels give that image's rank among all others (#1 = most similar), so a larger rank is correct here. DINOv2 puts every one in its top three; the attention prior ranks them last or near last.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="results" aria-labelledby="results-h">
+  <div class="sec-head">
+    <div class="eyebrow">Results · ETH3D · IMC 2021 · Texture-Poor SfM · SMERF</div>
+    <h2 id="results-h">Results</h2>
+  </div>
+
+  <div class="sub">
+    <h3>Camera poses</h3>
+    <div class="table-scroll">
+      <table>
+        <caption class="sr-only">Pose AUC (%) for multi-view camera reconstruction</caption>
+        <thead>
+          <tr>
+            <th class="l" colspan="2"></th>
+            <th class="grp sep-l" colspan="3">ETH3D</th>
+            <th class="grp sep-l" colspan="3">IMC 2021</th>
+            <th class="grp sep-l" colspan="3">Texture-Poor SfM</th>
+          </tr>
+          <tr>
+            <th class="l">Matcher</th><th class="l">Method</th>
+            <th class="sep-l">@1°</th><th>@3°</th><th>@5°</th>
+            <th class="sep-l">@3°</th><th>@5°</th><th>@10°</th>
+            <th class="sep-l">@3°</th><th>@5°</th><th>@10°</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="group"><td colspan="11">Detector-based</td></tr>
+          <tr><td class="l m">SIFT+NN</td><td class="l">COLMAP†</td><td class="sep-l">26.71</td><td>38.86</td><td>42.14</td><td class="sep-l">23.58</td><td>32.66</td><td>44.79</td><td class="sep-l">2.87</td><td>3.85</td><td>4.95</td></tr>
+          <tr><td class="l m">SP+SG</td><td class="l">PixSfM†</td><td class="sep-l">50.82</td><td>68.52</td><td>72.86</td><td class="sep-l">45.19</td><td>57.22</td><td>70.47</td><td class="sep-l">14.00</td><td>19.23</td><td>24.55</td></tr>
+          <tr class="group"><td colspan="11">End-to-end</td></tr>
+          <tr><td class="l m">–</td><td class="l">VGGSfM†</td><td class="sep-l">28.09</td><td>44.41</td><td>49.91</td><td class="sep-l">45.23</td><td>58.89</td><td>73.92</td><td class="sep-l">1.86</td><td>6.26</td><td>21.10</td></tr>
+          <tr><td class="l m">–</td><td class="l">MASt3R-SfM†</td><td class="sep-l">27.05</td><td>45.84</td><td>52.61</td><td class="sep-l">31.77</td><td>46.36</td><td>64.37</td><td class="sep-l">7.10</td><td>18.08</td><td>42.44</td></tr>
+          <tr><td class="l m">–</td><td class="l">MV-RoMa‡/†</td><td class="sep-l">37.43</td><td>43.29</td><td>44.85</td><td class="sep-l">51.31</td><td>62.92</td><td>75.92</td><td class="sep-l">51.79</td><td>66.77</td><td>81.74</td></tr>
+          <tr class="group"><td colspan="11">(Semi-)dense matching</td></tr>
+          <tr><td class="l m">DKM</td><td class="l">DetectorFreeSfM‡</td><td class="sep-l">54.55</td><td>72.66</td><td>77.55</td><td class="sep-l">48.31</td><td>60.80</td><td>74.38</td><td class="sep-l">37.12</td><td>51.80</td><td>66.55</td></tr>
+          <tr><td class="l m">DKM</td><td class="l">DenseSfM†</td><td class="sep-l">59.04</td><td>77.73</td><td>82.20</td><td class="sep-l">48.65</td><td>61.09</td><td>74.37</td><td class="sep-l">41.19</td><td>57.26</td><td>72.95</td></tr>
+          <tr class="ours"><td class="l m">DKM</td><td class="l"><b>OddEye</b>‡</td><td class="sep-l">74.73</td><td>83.44</td><td>85.43</td><td class="sep-l">51.29</td><td>63.07</td><td>75.66</td><td class="sep-l">45.71</td><td>60.32</td><td>74.07</td></tr>
+          <tr><td class="l m">RoMa</td><td class="l">DetectorFreeSfM‡</td><td class="sep-l">57.35</td><td>75.45</td><td>80.07</td><td class="sep-l">48.60</td><td>61.06</td><td>74.57</td><td class="sep-l">48.71</td><td>64.55</td><td>79.21</td></tr>
+          <tr><td class="l m">RoMa</td><td class="l">DenseSfM†</td><td class="sep-l">60.92</td><td>78.41</td><td>82.63</td><td class="sep-l">48.48</td><td>60.79</td><td>73.90</td><td class="sep-l">49.94</td><td>66.23</td><td>81.41</td></tr>
+          <tr class="ours"><td class="l m">RoMa</td><td class="l"><b>OddEye</b>‡</td><td class="sep-l">78.47</td><td>87.27</td><td>89.43</td><td class="sep-l">52.70</td><td>64.52</td><td>77.01</td><td class="sep-l">54.25</td><td>67.98</td><td>80.27</td></tr>
+          <tr><td class="l m">RoMa v2</td><td class="l">DetectorFreeSfM‡</td><td class="sep-l">62.07</td><td>80.11</td><td>84.59</td><td class="sep-l">49.22</td><td>61.81</td><td>75.32</td><td class="sep-l">58.16</td><td>73.31</td><td>86.08</td></tr>
+          <tr class="ours"><td class="l m">RoMa v2</td><td class="l"><b>OddEye</b>‡</td><td class="sep-l best">86.16</td><td class="best">94.98</td><td class="best">96.93</td><td class="sep-l best">53.42</td><td class="best">65.18</td><td class="best">77.53</td><td class="sep-l best">63.21</td><td class="best">76.47</td><td class="best">87.53</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-note">Pose AUC (%) from the larger of the rotation and translation angular errors. Bold marks the best value in each column. † reported by prior work; ‡ run with our implementation (for MV-RoMa, ETH3D is ours and the rest are reported). ETH3D: 22 scenes. IMC 2021: 5-, 10- and 25-image subsets. Texture-Poor SfM: 5-, 10- and 20-image subsets.</p>
+  </div>
+
+  <div class="sub">
+    <h3>Triangulation with fixed cameras</h3>
+    <div class="stack">
+      <div class="prose">
+        <p>With ground-truth poses on the 13 ETH3D training scenes, OddEye with RoMa v2 leads on every threshold. At 1 cm its completeness is 21.77%, more than double any other row: DenseSfM with RoMa reaches 7.38% and MV-RoMa 3.95%.</p>
+        <p class="table-note" style="margin-top:0">Exhaustive pairing, <span class="math">N<sub>a</sub></span> = 32,768 anchors per image, two-view tracks excluded.</p>
+      </div>
+      <div class="table-scroll">
+        <table class="mini">
+          <caption class="sr-only">Fixed-camera triangulation on ETH3D</caption>
+          <thead>
+            <tr><th class="l" colspan="2"></th><th class="grp sep-l" colspan="3">Accuracy (%)</th><th class="grp sep-l" colspan="3">Completeness (%)</th></tr>
+            <tr><th class="l">Matcher</th><th class="l">Method</th><th class="sep-l">1 cm</th><th>2 cm</th><th>5 cm</th><th class="sep-l">1 cm</th><th>2 cm</th><th>5 cm</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="l m">–</td><td class="l">MV-RoMa†</td><td class="sep-l">85.88</td><td>92.99</td><td>98.05</td><td class="sep-l">3.95</td><td>9.94</td><td>23.81</td></tr>
+            <tr class="ours"><td class="l m">DKM</td><td class="l"><b>OddEye</b>‡</td><td class="sep-l">84.51</td><td>91.84</td><td>97.11</td><td class="sep-l">9.46</td><td>21.41</td><td>43.23</td></tr>
+            <tr><td class="l m">RoMa</td><td class="l">DetectorFreeSfM‡</td><td class="sep-l">79.32</td><td>88.42</td><td>95.82</td><td class="sep-l">3.13</td><td>9.79</td><td>29.10</td></tr>
+            <tr><td class="l m">RoMa</td><td class="l">DenseSfM†</td><td class="sep-l">84.79</td><td>92.62</td><td>97.77</td><td class="sep-l">7.38</td><td>17.06</td><td>36.35</td></tr>
+            <tr class="ours"><td class="l m">RoMa</td><td class="l"><b>OddEye</b>‡</td><td class="sep-l">84.34</td><td>91.76</td><td>97.28</td><td class="sep-l">9.55</td><td>22.04</td><td>43.86</td></tr>
+            <tr><td class="l m">RoMa v2</td><td class="l">DetectorFreeSfM‡</td><td class="sep-l">77.02</td><td>86.92</td><td>95.01</td><td class="sep-l">4.30</td><td>14.04</td><td>40.73</td></tr>
+            <tr class="ours"><td class="l m">RoMa v2</td><td class="l"><b>OddEye</b>‡</td><td class="sep-l best">88.49</td><td class="best">94.51</td><td class="best">98.37</td><td class="sep-l best">21.77</td><td class="best">43.66</td><td class="best">72.25</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <h3>Runtime</h3>
+    <div class="split">
+      <div class="chart" id="runtime">
+        <div class="chart-title">End-to-end runtime on ETH3D <i>bridge</i></div>
+        <div class="chart-sub">110 images · RoMa v2 · RTX 4090 · minutes, lower is better</div>
+        <div class="bars" aria-label="Runtime and pose accuracy by matching strategy">
+          <div class="hdr first">Matching</div>
+          <div class="hdr">Runtime (min)</div>
+          <div class="hdr r">AUC@3°</div>
+
+          <div class="row-label">Exhaustive<small>all 5,995 pairs</small></div>
+          <div class="track" tabindex="0" data-tip="Exhaustive · 88.7 min · AUC@3° 97.22%"><div class="bar base" style="width: 88.7%"><span class="bar-val inside">88.7</span></div></div>
+          <div class="auc num">97.22</div>
+
+          <div class="row-label">OddEye<small>k = 5</small></div>
+          <div class="track" tabindex="0" data-tip="OddEye, k = 5 · 13.8 min · 6.41× faster · AUC@3° 97.02%"><div class="bar" style="width: 13.8%"></div><span class="bar-val" style="left: calc(13.8% + 8px)">13.8 <span style="color:var(--muted)">6.41×</span></span></div>
+          <div class="auc num">97.02</div>
+
+          <div class="row-label">OddEye<small>k = 3</small></div>
+          <div class="track" tabindex="0" data-tip="OddEye, k = 3 · 9.3 min · 9.53× faster · AUC@3° 96.85%"><div class="bar" style="width: 9.3%"></div><span class="bar-val" style="left: calc(9.3% + 8px)">9.3 <span style="color:var(--muted)">9.53×</span></span></div>
+          <div class="auc num">96.85</div>
+
+          <div class="row-label">OddEye<small>k = 2</small></div>
+          <div class="track" tabindex="0" data-tip="OddEye, k = 2 · 6.9 min · 12.78× faster · AUC@3° 96.40%"><div class="bar" style="width: 6.9%"></div><span class="bar-val" style="left: calc(6.9% + 8px)">6.9 <span style="color:var(--muted)">12.78×</span></span></div>
+          <div class="auc num">96.40</div>
+
+          <div class="ticks" aria-hidden="true"><span style="left:0">0</span><span style="left:20%">20</span><span style="left:40%">40</span><span style="left:60%">60</span><span style="left:80%">80</span><span style="left:100%">100</span></div>
+        </div>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+      <div class="prose">
+        <p>Exhaustive matching spends 80.44 of its 88.7 minutes in the dense matcher. With three partners per step, OddEye spends 3.97 minutes matching, 0.58 minutes on the attention prior and 4.77 minutes on the rest of SfM, for a 9.53× speedup at 0.37 points of AUC@3°.</p>
+        <p>Ranking by attention also beats appearance retrieval. With <span class="math">k</span> = 3 and on-demand matching, attention-ranked partners reach 89.07% AUC@3° on ETH3D with RoMa, against 81.47% for NetVLAD and 68.87% for DINOv2.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sub">
+    <h3>Scaling to SMERF</h3>
+    <figure>
+      <div class="plate"><img src="assets/smerf.webp" alt="OddEye reconstructions of the four SMERF scenes NYC, Berlin, Alameda and London, with the estimated cameras drawn in green over each point cloud." width="2400" height="563" loading="lazy"></div>
+    </figure>
+    <div class="table-scroll" style="margin-top: 18px">
+      <table class="mini">
+        <caption class="sr-only">Large-scale reconstruction on SMERF</caption>
+        <thead>
+          <tr><th class="l">Scene</th><th>Images</th><th>Registered</th><th>AUC@3°</th><th>Peak GPU</th><th>Runtime</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="l">NYC</td><td>990</td><td>990</td><td>95.33</td><td>5.35 GiB</td><td>3.26 h</td></tr>
+          <tr><td class="l">Berlin</td><td>1,511</td><td>1,508</td><td>92.85</td><td>7.70 GiB</td><td>8.71 h</td></tr>
+          <tr><td class="l">Alameda</td><td>1,734</td><td>1,734</td><td>94.75</td><td>8.70 GiB</td><td>9.30 h</td></tr>
+          <tr><td class="l">London</td><td>1,874</td><td>1,865</td><td>93.92</td><td>9.33 GiB</td><td>12.56 h</td></tr>
+          <tr class="ours"><td class="l"><b>All</b></td><td>6,109</td><td class="best">6,097 (99.8%)</td><td></td><td>&lt; 10 GiB</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-note">RoMa v2, <span class="math">N<sub>a</sub></span> = 1,024, <span class="math">k</span> = 5, published intrinsics, one RTX PRO 6000. Exhaustive matching on London would need about 1.76 million image pairs.</p>
+  </div>
+
+  <div class="sub">
+    <h3>Reconstructions side by side</h3>
+    <div class="tabs" role="tablist" aria-label="Qualitative comparisons">
+      <button type="button" role="tab" id="tab-eth" aria-controls="qual-panel" aria-selected="true" data-img="assets/qual-eth3d.webp" data-w="2000" data-h="1538" data-cap="&lt;b&gt;ETH3D triangulation.&lt;/b&gt; Twelve of the 13 training scenes. In each pair, left: OddEye + RoMa v2; right: DetectorFreeSfM + RoMa v2." data-alt="Twelve ETH3D scenes, each shown twice: OddEye's point cloud on the left is visibly denser than DetectorFreeSfM's on the right.">ETH3D</button>
+      <button type="button" role="tab" id="tab-imc" aria-controls="qual-panel" aria-selected="false" tabindex="-1" data-img="assets/qual-imc.webp" data-w="2000" data-h="961" data-cap="&lt;b&gt;IMC 2021.&lt;/b&gt; Four 10-image landmark bags. Left: OddEye + RoMa v2. Right: DetectorFreeSfM + RoMa v2." data-alt="Four IMC 2021 landmarks reconstructed by OddEye on the left and DetectorFreeSfM on the right.">IMC 2021</button>
+      <button type="button" role="tab" id="tab-tp" aria-controls="qual-panel" aria-selected="false" tabindex="-1" data-img="assets/qual-texturepoor.webp" data-w="1828" data-h="978" data-cap="&lt;b&gt;Texture-Poor SfM.&lt;/b&gt; Six 10-image subsets. Blue frustums are predicted cameras and red frustums are ground truth. Left: OddEye + RoMa v2. Right: DetectorFreeSfM + RoMa v2." data-alt="Six texture-poor indoor scenes with predicted and ground-truth cameras, OddEye on the left and DetectorFreeSfM on the right.">Texture-Poor SfM</button>
+    </div>
+    <figure id="qual-panel" role="tabpanel" aria-labelledby="tab-eth">
+      <div class="plate"><img id="qual-img" src="assets/qual-eth3d.webp" alt="Twelve ETH3D scenes, each shown twice: OddEye's point cloud on the left is visibly denser than DetectorFreeSfM's on the right." width="2000" height="1538" loading="lazy"></div>
+      <figcaption id="qual-cap"><b>ETH3D triangulation.</b> Twelve of the 13 training scenes. In each pair, left: OddEye + RoMa v2; right: DetectorFreeSfM + RoMa v2.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="bibtex" aria-labelledby="bibtex-h">
+  <div class="sec-head">
+    <div class="eyebrow">Citation</div>
+    <h2 id="bibtex-h">BibTeX</h2>
+  </div>
+  <div class="bib">
+    <pre id="bib-text"></pre>
+  </div>
+  <div class="bib-actions">
+    <button type="button" class="btn" id="copy-bib">Copy BibTeX</button>
+    <span class="copy-status" id="copy-status" aria-live="polite"></span>
+  </div>
+</section>
+
+<footer>
+  <span>OddEye · Seungyeop Kang, Sungjoo Yoo · Seoul National University</span>
+  <span>Contact <span class="sel">ksy8653@snu.ac.kr</span></span>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  /* ---- Links: fill these in when they exist. Empty values render as "soon". ---- */
+  var LINKS = {
+    paper: "",      /* e.g. "https://arxiv.org/abs/2610.xxxxx" */
+    arxivId: "",    /* e.g. "2610.xxxxx", added to the BibTeX */
+    code: ""        /* e.g. "https://github.com/..." */
+  };
+
+  function setLink(id, url) {
+    var a = document.getElementById(id);
+    if (!a) return;
+    if (url) {
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener";
+    } else {
+      a.removeAttribute("href");
+      a.setAttribute("aria-disabled", "true");
+      var s = document.createElement("span");
+      s.className = "soon";
+      s.textContent = "soon";
+      a.appendChild(s);
+    }
+  }
+  setLink("link-arxiv", LINKS.paper);
+  setLink("link-code", LINKS.code);
+
+  /* ---- BibTeX ---- */
+  var bib = "@article{kang2026oddeye,\n" +
+    "  title   = {OddEye: Bridging Pairwise Dense Matching and Incremental Structure-from-Motion},\n" +
+    "  author  = {Kang, Seungyeop and Yoo, Sungjoo},\n" +
+    "  journal = {arXiv preprint" + (LINKS.arxivId ? " arXiv:" + LINKS.arxivId : "") + "},\n" +
+    "  year    = {2026}\n}";
+  var pre = document.getElementById("bib-text");
+  pre.textContent = bib;
+  var status = document.getElementById("copy-status");
+  document.getElementById("copy-bib").addEventListener("click", function () {
+    function selectIt() {
+      var r = document.createRange();
+      r.selectNodeContents(pre);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+      status.textContent = "Selected. Press Ctrl+C or ⌘C to copy.";
+    }
+    try {
+      navigator.clipboard.writeText(bib).then(function () {
+        status.textContent = "Copied to the clipboard.";
+      }, selectIt);
+    } catch (e) { selectIt(); }
+  });
+
+  /* ---- Video chapters ---- */
+  var video = document.getElementById("explainer");
+  var chapterButtons = Array.prototype.slice.call(document.querySelectorAll("#chapters button"));
+  var starts = chapterButtons.map(function (b) { return +b.dataset.t; });
+  chapterButtons.forEach(function (b) {
+    b.addEventListener("click", function () {
+      try {
+        video.currentTime = +b.dataset.t;
+        var p = video.play();
+        if (p && p.catch) p.catch(function () {});
+      } catch (e) {}
+    });
+  });
+  function markChapter() {
+    var t = video.currentTime || 0, idx = 0;
+    for (var i = 0; i < starts.length; i++) if (t >= starts[i]) idx = i;
+    chapterButtons.forEach(function (b, i) {
+      if (i === idx && (t > 0 || !video.paused)) b.setAttribute("aria-current", "true");
+      else b.removeAttribute("aria-current");
+    });
+  }
+  video.addEventListener("timeupdate", markChapter);
+  video.addEventListener("seeked", markChapter);
+
+  /* ---- Qualitative tabs ---- */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tabs [role="tab"]'));
+  var qImg = document.getElementById("qual-img"), qCap = document.getElementById("qual-cap"), qPanel = document.getElementById("qual-panel");
+  function selectTab(tab) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.tabIndex = on ? 0 : -1;
+    });
+    qImg.src = tab.dataset.img;
+    qImg.width = +tab.dataset.w;
+    qImg.height = +tab.dataset.h;
+    qImg.alt = tab.dataset.alt;
+    qCap.innerHTML = tab.dataset.cap;
+    qPanel.setAttribute("aria-labelledby", tab.id);
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener("click", function () { selectTab(t); });
+    t.addEventListener("keydown", function (e) {
+      var d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!d) return;
+      var n = tabs[(i + d + tabs.length) % tabs.length];
+      n.focus();
+      selectTab(n);
+    });
+  });
+
+  /* ---- Runtime tooltip ---- */
+  var chart = document.getElementById("runtime"), tip = document.getElementById("tip");
+  Array.prototype.forEach.call(chart.querySelectorAll(".track"), function (tr) {
+    function show() {
+      tip.textContent = tr.dataset.tip;
+      tip.hidden = false;
+      var c = chart.getBoundingClientRect(), r = tr.getBoundingClientRect();
+      var left = Math.min(r.left - c.left, c.width - tip.offsetWidth - 8);
+      tip.style.left = Math.max(8, left) + "px";
+      tip.style.top = (r.top - c.top - tip.offsetHeight - 6) + "px";
+    }
+    function hide() { tip.hidden = true; }
+    tr.addEventListener("mouseenter", show);
+    tr.addEventListener("focus", show);
+    tr.addEventListener("mouseleave", hide);
+    tr.addEventListener("blur", hide);
+  });
+
+  /* ---- Anchor demo ---- */
+  var demo = document.getElementById("demo"), svg = document.getElementById("demo-svg");
+  var NS = "http://www.w3.org/2000/svg";
+  var F = {
+    j: { x: 24, y: 64, w: 196, h: 150 },
+    i: { x: 262, y: 64, w: 196, h: 150 },
+    k: { x: 500, y: 64, w: 196, h: 150 }
+  };
+  /* Toy correspondence fields: image j sees the scene shifted right, image k shifted left.
+     Points that land outside the target frame have no match. */
+  function toJ(p) { return [p[0] * 0.8 + 0.3, p[1] * 0.9 + 0.06]; }
+  function toK(p) { return [p[0] * 0.86 - 0.24, p[1] * 0.92 + 0.03]; }
+  function inside(q) { return q[0] >= 0.04 && q[0] <= 0.96 && q[1] >= 0.05 && q[1] <= 0.95; }
+  function px(f, q) { return [f.x + q[0] * f.w, f.y + q[1] * f.h]; }
+  var mode = "independent", seed = 7, N = 7;
+  function rng(s) {
+    return function () {
+      s |= 0; s = s + 0x6D2B79F5 | 0;
+      var t = Math.imul(s ^ s >>> 15, 1 | s);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function samples(r) {
+    var out = [];
+    for (var n = 0; n < N; n++) out.push([0.1 + 0.8 * r(), 0.12 + 0.76 * r()]);
+    return out;
+  }
+  function el(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    for (var a in attrs) e.setAttribute(a, attrs[a]);
+    (parent || svg).appendChild(e);
+    return e;
+  }
+  function arc(a, b, cls, lift) {
+    var cx = (a[0] + b[0]) / 2, cy = Math.min(a[1], b[1]) - lift;
+    el("path", { d: "M" + a[0].toFixed(1) + " " + a[1].toFixed(1) + " Q" + cx.toFixed(1) + " " + cy.toFixed(1) + " " + b[0].toFixed(1) + " " + b[1].toFixed(1), "class": "arc " + cls });
+  }
+  function dotAt(p, cls) { el("circle", { cx: p[0].toFixed(1), cy: p[1].toFixed(1), r: 4.5, "class": "pt " + cls }); }
+  function anchorAt(p) {
+    el("circle", { cx: p[0], cy: p[1], r: 6, "class": "anchor-ring" });
+    var d = 3.6;
+    el("path", { d: "M" + (p[0] - d) + " " + (p[1] - d) + "L" + (p[0] + d) + " " + (p[1] + d) + "M" + (p[0] + d) + " " + (p[1] - d) + "L" + (p[0] - d) + " " + (p[1] + d), "class": "anchor-x" });
+  }
+  function label(f, name, sub) {
+    var t = el("text", { x: f.x + f.w / 2, y: f.y + f.h + 26, "text-anchor": "middle", "class": "lbl" });
+    t.textContent = "I";
+    var s = el("tspan", { "baseline-shift": "sub", "font-size": "12" }, t);
+    s.textContent = name;
+    var u = el("text", { x: f.x + f.w / 2, y: f.y + f.h + 45, "text-anchor": "middle", "class": "lbl-sub" });
+    u.textContent = sub;
+  }
+  function render() {
+    while (svg.lastChild && svg.lastChild.nodeName !== "desc") svg.removeChild(svg.lastChild);
+    demo.dataset.mode = mode;
+    ["j", "i", "k"].forEach(function (key) {
+      var f = F[key];
+      el("rect", { x: f.x, y: f.y, width: f.w, height: f.h, rx: 3, "class": "frame " + (key === "i" ? "src" : "tgt") });
+    });
+    label(F.j, "j", "TARGET");
+    label(F.i, "i", "SOURCE");
+    label(F.k, "k", "TARGET");
+
+    var r = rng(seed), A = samples(r), B = samples(r);
+    var tracks = 0, multi = 0, views = 0, ends = [];
+    if (mode === "independent") {
+      A.forEach(function (p, n) {
+        var q = toJ(p);
+        if (!inside(q)) return;
+        var s = px(F.i, p), t = px(F.j, q);
+        arc(s, t, "a", 46 + n * 5);
+        ends.push([t, "a"]);
+        tracks++; views += 2;
+      });
+      B.forEach(function (p, n) {
+        var q = toK(p);
+        if (!inside(q)) return;
+        var s = px(F.i, p), t = px(F.k, q);
+        arc(s, t, "b", 46 + n * 5);
+        ends.push([t, "b"]);
+        tracks++; views += 2;
+      });
+      A.forEach(function (p) { dotAt(px(F.i, p), "a"); });
+      B.forEach(function (p) { dotAt(px(F.i, p), "b"); });
+      ends.forEach(function (e) { dotAt(e[0], e[1]); });
+    } else {
+      A.forEach(function (p, n) {
+        var qj = toJ(p), qk = toK(p), s = px(F.i, p), v = 1;
+        if (inside(qj)) { var tj = px(F.j, qj); arc(s, tj, "t", 46 + n * 5); ends.push(tj); v++; }
+        if (inside(qk)) { var tk = px(F.k, qk); arc(s, tk, "t", 46 + n * 5); ends.push(tk); v++; }
+        if (v >= 2) { tracks++; views += v; }
+        if (v >= 3) multi++;
+      });
+      A.forEach(function (p) { anchorAt(px(F.i, p)); });
+      ends.forEach(function (t) { dotAt(t, "t"); });
+    }
+    document.getElementById("r-tracks").textContent = tracks;
+    document.getElementById("r-multi").textContent = multi;
+    document.getElementById("r-len").textContent = tracks ? (views / tracks).toFixed(2) : "–";
+    var note = document.getElementById("demo-note");
+    if (mode === "independent") {
+      note.innerHTML = "Each pair samples its own source points in <i>I<sub>i</sub></i>. Solid arcs go to <i>I<sub>j</sub></i>, dashed arcs to <i>I<sub>k</sub></i>. No two arcs share a start, so every track has two views.";
+    } else {
+      note.innerHTML = "Both fields are read at the same anchors (⊗) in <i>I<sub>i</sub></i>. An anchor visible in both targets roots one track across three views; anchors near the edge are visible in only one target.";
+    }
+    document.getElementById("demo-desc").textContent =
+      (mode === "independent" ? "Independent sampling: " : "Fixed anchors: ") +
+      tracks + " tracks, " + multi + " spanning three views.";
+  }
+  Array.prototype.forEach.call(demo.querySelectorAll(".seg button"), function (b) {
+    b.addEventListener("click", function () {
+      mode = b.dataset.mode;
+      Array.prototype.forEach.call(demo.querySelectorAll(".seg button"), function (o) {
+        o.setAttribute("aria-pressed", o === b ? "true" : "false");
+      });
+      render();
+    });
+  });
+  document.getElementById("resample").addEventListener("click", function () { seed += 1; render(); });
+  render();
+})();
+</script>
+</body>
+</html>
